@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>归厝研学平台 · 闽南侨乡文化与研学记录</title>
+    <!-- Leaflet 核心库 -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #f0f4f0;
+            font-family: 'Segoe UI', Roboto, 'Noto Sans', system-ui, sans-serif;
+            color: #1e3a2f;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 顶部菜单栏 */
+        .navbar {
+            background: rgba(255, 255, 245, 0.94);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid #cfe3d4;
+            padding: 0.7rem 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: space-between;
+            z-index: 20;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+        .logo-area h1 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #2b6e4b, #1f543b);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: 1px;
+        }
+        .logo-area p {
+            font-size: 0.75rem;
+            color: #58856b;
+        }
+        .menu-tabs {
+            display: flex;
+            gap: 1.8rem;
+            align-items: center;
+        }
+        .menu-tabs button {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 0.4rem 0.2rem;
+            cursor: pointer;
+            color: #2c5e3f;
+            border-bottom: 2px solid transparent;
+            transition: 0.2s;
+        }
+        .menu-tabs button:hover {
+            color: #2d6a4f;
+        }
+
+        /* 主内容区：左右布局 */
+        .main-dashboard {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            gap: 0;
+            background: #eaf1e8;
+        }
+
+        /* 左侧研学记录卡片区 */
+        .study-panel {
+            width: 380px;
+            background: #ffffffec;
+            backdrop-filter: blur(2px);
+            border-right: 1px solid #cde0d4;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding: 1.2rem;
+            gap: 1.2rem;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.03);
+            z-index: 10;
+        }
+
+        .form-card {
+            background: #fefef7;
+            border-radius: 1.2rem;
+            padding: 1.2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            border: 1px solid #ddebe0;
+        }
+        .form-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.8rem;
+            border-left: 4px solid #588b6e;
+            padding-left: 0.7rem;
+            color: #2b5a42;
+        }
+        .form-group {
+            margin-bottom: 0.9rem;
+        }
+        label {
+            font-weight: 500;
+            font-size: 0.8rem;
+            display: block;
+            margin-bottom: 0.3rem;
+            color: #426b54;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 0.5rem 0.8rem;
+            border: 1px solid #caddd0;
+            border-radius: 1rem;
+            font-size: 0.85rem;
+            background: white;
+        }
+        .location-bar {
+            background: #eef3ea;
+            border-radius: 1rem;
+            padding: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 0.7rem;
+        }
+        .coord-display {
+            font-size: 0.7rem;
+            font-family: monospace;
+            background: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 1rem;
+            flex: 1;
+        }
+        .small-btn {
+            background: #cddfd1;
+            border: none;
+            padding: 0.3rem 0.8rem;
+            border-radius: 2rem;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+        .btn-primary {
+            background: #3e7b47;
+            color: white;
+            border: none;
+            border-radius: 2rem;
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
+        .btn-outline-sm {
+            background: transparent;
+            border: 1px solid #83a886;
+            border-radius: 2rem;
+            padding: 0.3rem 0.8rem;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+        .entries-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-height: 55vh;
+            overflow-y: auto;
+        }
+        .entry-item {
+            background: #fafcf8;
+            border-radius: 1rem;
+            padding: 0.8rem;
+            border: 1px solid #e2efe2;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+        }
+        .entry-img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 0.6rem;
+            background: #d9e3d6;
+            margin-bottom: 0.5rem;
+        }
+        .entry-loc {
+            font-size: 0.7rem;
+            font-family: monospace;
+            background: #e6f0e3;
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+        }
+        .entry-note {
+            font-size: 0.8rem;
+            margin: 0.5rem 0;
+            word-break: break-word;
+        }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #ac6f6f;
+            font-size: 0.7rem;
+            cursor: pointer;
+            float: right;
+        }
+
+        .map-panel {
+            flex: 1;
+            position: relative;
+            background: #dee8e0;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+            background: #dde4da;
+        }
+
+        .coords-bar-custom {
+            background: rgba(28, 40, 32, 0.85);
+            backdrop-filter: blur(8px);
+            border-radius: 32px;
+            padding: 4px 12px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #f0f7f0;
+            pointer-events: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        @media (max-width: 780px) {
+            .study-panel { width: 320px; }
+            .navbar { padding: 0.5rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="navbar">
+    <div class="logo-area">
+        <h1>🏡 归厝研学平台</h1>
+        <p>记录经纬·定格瞬间·闽南侨乡文化地图</p>
+    </div>
+    <div class="menu-tabs">
+        <button id="resetViewBtn">🗺️ 重置地图视图</button>
+        <button id="aboutBtn">📜 文化简介</button>
+    </div>
+</div>
+
+<div class="main-dashboard">
+    <div class="study-panel">
+        <div class="form-card">
+            <h3>✍️ 新研学足迹</h3>
+            <div class="location-bar">
+                <span>📍 经纬度：</span>
+                <span id="liveCoordDisplay" class="coord-display">未获取</span>
+                <button id="getLocationBtn" class="small-btn">📱 获取设备位置</button>
+            </div>
+            <div class="form-group">
+                <label>🗺️ 坐标 (纬度,经度)</label>
+                <input type="text" id="latLngInput" placeholder="例如: 24.760654,118.603577" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label>📸 照片 (上传或图片URL)</label>
+                <input type="file" id="imageUpload" accept="image/*" style="margin-bottom: 6px;">
+                <input type="text" id="imageUrlInput" placeholder="或输入图片网址">
+            </div>
+            <div class="form-group">
+                <label>📝 研学笔记</label>
+                <textarea id="noteText" rows="2" placeholder="记录文化观察、研学心得..."></textarea>
+            </div>
+            <button id="saveEntryBtn" class="btn-primary">📌 保存记录</button>
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+                <button id="clearFormBtn" class="btn-outline-sm">清空表单</button>
+                <button id="exportDataBtn" class="btn-outline-sm">导出JSON</button>
+                <button id="clearAllBtn" class="btn-outline-sm">清空所有记录</button>
+            </div>
+        </div>
+        <div class="form-card">
+            <h3>📋 研学足迹集</h3>
+            <div id="entriesContainer" class="entries-list">
+                <div style="text-align:center; color:#8aa78a;">✨ 暂无记录，添加研学足迹~</div>
+            </div>
+        </div>
+    </div>
+    <div class="map-panel">
+        <div id="map"></div>
+    </div>
+</div>
+
+<script>
+    // ---------- 研学记录存储逻辑 ----------
+    const STORAGE_KEY = 'guicuo_study_entries_merged';
+    let entries = [];
+
+    const latLngInput = document.getElementById('latLngInput');
+    const getLocationBtn = document.getElementById('getLocationBtn');
+    const liveCoordDisplay = document.getElementById('liveCoordDisplay');
+    const imageUpload = document.getElementById('imageUpload');
+    const imageUrlInput = document.getElementById('imageUrlInput');
+    const noteText = document.getElementById('noteText');
+    const saveEntryBtn = document.getElementById('saveEntryBtn');
+    const clearFormBtn = document.getElementById('clearFormBtn');
+    const entriesContainer = document.getElementById('entriesContainer');
+    const exportDataBtn = document.getElementById('exportDataBtn');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+
+    function saveToLocalStorage() { localStorage.setItem(STORAGE_KEY, JSON.stringify(entries)); }
+    function loadEntries() {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) { try { entries = JSON.parse(stored); } catch(e) { entries = []; } }
+        else { entries = []; }
+        renderEntries();
+    }
+    function generateId() { return Date.now() + '-' + Math.random().toString(36).substr(2, 6); }
+    function parseLatLng(inputStr) {
+        if (!inputStr.trim()) return null;
+        let parts = inputStr.trim().split(/[ ,;，]+/);
+        if (parts.length >= 2) {
+            let lat = parseFloat(parts[0]), lng = parseFloat(parts[1]);
+            if (!isNaN(lat) && !isNaN(lng) && lat>=-90 && lat<=90 && lng>=-180 && lng<=180) 
+                return { latitude: lat, longitude: lng, coordText: `${lat.toFixed(6)}, ${lng.toFixed(6)}` };
+        }
+        let commaSplit = inputStr.split(',');
+        if (commaSplit.length===2) {
+            let lat=parseFloat(commaSplit[0]), lng=parseFloat(commaSplit[1]);
+            if(!isNaN(lat) && !isNaN(lng)) return { latitude: lat, longitude: lng, coordText: `${lat.toFixed(6)}, ${lng.toFixed(6)}` };
+        }
+        return null;
+    }
+    async function getImageData() {
+        const file = imageUpload.files[0];
+        if (file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
+        }
+        let url = imageUrlInput.value.trim();
+        return url || '';
+    }
+    async function addNewEntry() {
+        let latLngRaw = latLngInput.value.trim();
+        let coordInfo = parseLatLng(latLngRaw);
+        if (!coordInfo) { alert('请填写正确经纬度 (例如 24.760654,118.603577)'); return; }
+        let imageFinal = await getImageData();
+        let note = noteText.value.trim() || '(无文字记录)';
+        const newEntry = {
+            id: generateId(),
+            latitude: coordInfo.latitude, longitude: coordInfo.longitude,
+            coordText: coordInfo.coordText,
+            imageUrl: imageFinal,
+            note: note,
+            timestamp: Date.now(),
+            dateStr: new Date().toLocaleString('zh-CN')
+        };
+        entries.unshift(newEntry);
+        saveToLocalStorage();
+        renderEntries();
+        imageUpload.value = ''; imageUrlInput.value = ''; noteText.value = '';
+        alert('✅ 研学足迹已保存');
+    }
+    function renderEntries() {
+        if (!entriesContainer) return;
+        if (entries.length === 0) {
+            entriesContainer.innerHTML = `<div style="text-align:center; color:#8aa78a;">✨ 暂无记录，添加研学足迹~</div>`;
+            return;
+        }
+        let html = '';
+        entries.forEach(entry => {
+            let imgHtml = entry.imageUrl ? `<img class="entry-img" src="${escapeHtml(entry.imageUrl)}" onerror="this.src='https://placehold.co/300x150?text=图加载失败';">` : `<div class="entry-img" style="background:#e2ebe0; display:flex; align-items:center; justify-content:center;">📷 无照片</div>`;
+            html += `
+                <div class="entry-item">
+                    ${imgHtml}
+                    <div class="entry-loc">📍 ${escapeHtml(entry.coordText)}</div>
+                    <div class="entry-note">${escapeHtml(entry.note).replace(/\n/g,'<br>')}</div>
+                    <div style="font-size:10px; color:#6d8f6a;">${escapeHtml(entry.dateStr)}</div>
+                    <button class="delete-btn" data-id="${entry.id}">🗑️ 删除</button>
+                </div>
+            `;
+        });
+        entriesContainer.innerHTML = html;
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = btn.getAttribute('data-id');
+                if(confirm('删除此条记录？')) {
+                    entries = entries.filter(e => e.id !== id);
+                    saveToLocalStorage();
+                    renderEntries();
+                }
+            });
+        });
+    }
+    function clearForm() { latLngInput.value = ''; imageUpload.value = ''; imageUrlInput.value = ''; noteText.value = ''; liveCoordDisplay.innerText = '未获取'; }
+    function exportToJson() {
+        if(entries.length===0) { alert('无数据'); return; }
+        const dataStr = JSON.stringify(entries, null, 2);
+        const blob = new Blob([dataStr], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `guicuo_${Date.now()}.json`; a.click();
+        URL.revokeObjectURL(url);
+    }
+    function clearAllEntries() { if(confirm('清空所有研学记录？')) { entries = []; saveToLocalStorage(); renderEntries(); } }
+    saveEntryBtn.addEventListener('click', addNewEntry);
+    clearFormBtn.addEventListener('click', clearForm);
+    exportDataBtn.addEventListener('click', exportToJson);
+    clearAllBtn.addEventListener('click', clearAllEntries);
+    getLocationBtn.addEventListener('click', () => {
+        if(!navigator.geolocation) { alert('不支持定位'); return; }
+        navigator.geolocation.getCurrentPosition(pos => {
+            let lat = pos.coords.latitude, lng = pos.coords.longitude;
+            let coordStr = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            liveCoordDisplay.innerText = coordStr;
+            latLngInput.value = coordStr;
+        }, err => { alert('定位失败'); });
+    });
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+
+    // ---------- 地图模块：天地图 + 闽南侨乡兴趣点 (更新忠补厝精确坐标) ----------
+    const TDT_KEY = '4ca08a24f134568a4985b5ee3642ae1e';
+    const subdomains = ['0','1','2','3','4','5','6','7'];
+    const vecUrl = `http://t{s}.tianditu.gov.cn/vec_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=vec&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=${TDT_KEY}`;
+    const cvaUrl = `http://t{s}.tianditu.gov.cn/cva_w/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=cva&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&tk=${TDT_KEY}`;
+    const vecLayer = L.tileLayer(vecUrl, { subdomains, maxZoom: 18, minZoom: 2, attribution: '天地图', noWrap: true });
+    const cvaLayer = L.tileLayer(cvaUrl, { subdomains, maxZoom: 18, minZoom: 2, zIndex: 1000, noWrap: true });
+    const map = L.map('map', { layers: [vecLayer, cvaLayer], center: [24.76, 118.60], zoom: 14, zoomControl: true });
+    vecLayer.options.noWrap = true; cvaLayer.options.noWrap = true;
+    
+    L.control.scale({ metric: true, imperial: false, position: 'bottomleft' }).addTo(map);
+    const CoordControl = L.Control.extend({ options: { position: 'bottomright' }, onAdd: function() { const div = L.DomUtil.create('div', 'coords-bar-custom'); div.id = 'mouse-coords'; div.innerHTML = '📍 纬度: --, 经度: --'; return div; } });
+    map.addControl(new CoordControl());
+    map.on('mousemove', function(e) { const lat = e.latlng.lat.toFixed(5), lng = e.latlng.lng.toFixed(5); const el = document.getElementById('mouse-coords'); if(el) el.innerHTML = `📍 纬度: ${lat} , 经度: ${lng}`; });
+    
+    document.getElementById('resetViewBtn').addEventListener('click', () => map.setView([24.76, 118.60], 14));
+    document.getElementById('aboutBtn').addEventListener('click', () => alert('归厝研学 | 闽南侨乡文化专题\n红砖古厝、海洋贸易、华侨根脉。点击地图标点查看详细研学简介。\n已精确标注：朝东楼、忠补厝红砖馆等核心地标。'));
+
+    // ---------- 闽南侨乡兴趣点列表 (忠补厝坐标已更新) ----------
+    const poiList = [
+        { 
+            name: "朝东楼", 
+            coords: [24.759289, 118.604559],
+            desc: "朝东楼是福建省泉州市晋江市新塘街道梧林社区的核心建筑，1930年由菲律宾华侨蔡朝东出资建造。这座三层钢筋水泥建筑融合拜占庭式圆顶、科林斯式柱廊与闽南传统“二进四开间”布局，超前设计电梯井。2016年梧林村列入中国传统村落，2019年作为梧林侨史馆开放。2020年列入福建省文物保护单位。地址：晋江市新塘街道东西三路。" 
+        },
+        { 
+            name: "忠补厝红砖馆", 
+            coords: [24.760654, 118.603577],   // 精确坐标: 泉州市晋江市侨晖路15号
+            desc: "忠补厝，以红砖古厝为载体，弘扬闽南红砖砖雕文化。福建省非遗闽南砖雕研学基地及非遗古法拓片研学基地。可欣赏砖雕非遗大师作品，参与古今拓片、锦鲤绘记、红砖刻记等手作体验。地址：泉州市晋江市侨晖路15号。" 
+        },
+        { 
+            name: "蔡氏古民居建筑群", 
+            coords: [24.8141, 118.4302], 
+            desc: "位于南安市官桥漳里村，菲律宾华侨蔡浅所建，从1855年至1907年建成，占地1.6万平方米，房间400间。硬山屋顶、燕尾脊、雕梁画栋，是闽南传统民居典范，全国重点文物保护单位。" 
+        },
+        { 
+            name: "枪楼 (修养楼)", 
+            coords: [24.6137, 118.5781], 
+            desc: "1934年建，位于晋江梧林古村落，三层碉楼，旅菲华侨蔡顺意出资。设有铁板窗扇、枪孔，具备极强防御功能，亦称修养楼，见证侨乡防卫历史。" 
+        },
+        { 
+            name: "石狮祥芝国家中心渔港", 
+            coords: [24.7205, 118.7742], 
+            desc: "福建省第一大渔港，国家中心渔港，码头泊位22个，可停泊1000艘渔船，是海洋捕捞、渔货交易、冷链物流枢纽，展现闽南海洋渔业文化。" 
+        },
+        { 
+            name: "泉州海外交通史博物馆", 
+            coords: [24.9125, 118.5923], 
+            desc: "位于泉州丰泽区，国家一级博物馆，以海上丝绸之路为主题。馆藏宋代海船残骸、宗教石刻等，反映古代海外交通与泉州港辉煌历史。" 
+        }
+    ];
+    
+    const redIcon = L.divIcon({ 
+        className: 'custom-marker', 
+        html: '<div style="background:#b3452e; width:26px; height:26px; border-radius:50% 50% 50% 0; transform:rotate(-45deg); border:2px solid #ffefc0; display:flex; align-items:center; justify-content:center;"><span style="transform:rotate(45deg);">🏮</span></div>', 
+        iconSize: [26,26], 
+        popupAnchor: [0,-15] 
+    });
+    
+    poiList.forEach(poi => {
+        const marker = L.marker(poi.coords, { icon: redIcon }).addTo(map);
+        marker.bindPopup(`<div style="max-width:280px;"><h3 style="color:#a5432e; margin-bottom:5px;">🏮 ${poi.name}</h3><p style="font-size:0.8rem; line-height:1.4;">${poi.desc}</p><small>📖 归厝研学推荐</small></div>`);
+        marker.bindTooltip(poi.name, { sticky: true, className: 'poi-tooltip' });
+    });
+
+    // 加载中国省级边界 (如果 china_data.js 存在)
+    function loadChinaBoundary() {
+        if (typeof window !== 'undefined' && window.china_geojson) {
+            L.geoJSON(window.china_geojson, {
+                style: { color: '#8faa8a', weight: 1.2, fillColor: '#cde0cb', fillOpacity: 0.05 },
+                onEachFeature: (f, layer) => { if(f.properties?.name) layer.bindTooltip(f.properties.name, { sticky: true, className: 'province-tip' }); }
+            }).addTo(map);
+            console.log("中国省级边界加载成功");
+        } else { 
+            console.log("未检测到 china_data.js，跳过边界图层（不影响核心地标功能）"); 
+        }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadChinaBoundary);
+    else loadChinaBoundary();
+
+    const styleElem = document.createElement('style');
+    styleElem.textContent = `
+        .province-tip { background:#f4f9ef; color:#3c6e47; border-radius:12px; font-size:11px; padding:2px 6px; }
+        .poi-tooltip { background:#2f4d3c; color:#faf0db; border-radius:20px; font-size:12px; padding:2px 10px; border:1px solid #e7cba5; }
+        .custom-marker { background:transparent; }
+        .coords-bar-custom { font-weight:500; margin-bottom:16px; margin-right:16px; }
+        .leaflet-control-scale-line { background: rgba(245,245,235,0.7); border-color:#58856b; }
+    `;
+    document.head.appendChild(styleElem);
+    
+    loadEntries();
+</script>
+</body>
+</html>
